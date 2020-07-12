@@ -1,0 +1,88 @@
+body {
+    margin: 0;
+}
+
+#dropZone {
+    margin: 0 auto;
+    width: 100%;
+    height: 600px;
+    padding: 30px;
+    border: 10px dashed #ecab00;
+    background-color: #ecab00;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+#dropZone.dragged {
+    background-color: #fff;
+    border-color: #ecab00;
+}
+
+#uploadedList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#uploadedList:after {
+    content: " ";
+    display: block;
+    clear: both;
+}
+
+#uploadedList > li {
+    float: left;
+    width: 100px;
+    height: 100px;
+    margin-left: 20px;
+    background-color: #fff;
+    border: 2px solid #fff;
+    word-break: break-all;
+    cursor: pointer;
+}
+
+#uploadedList > li.selected {
+    background-color: #ccc;
+    border: 2px solid #f00 !important;
+}
+
+#uploadedList > li:first-child {
+    margin-left: 0;
+}
+
+#contextMenuPopup {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #fff;
+    z-index: 9000;
+}
+
+#dragBox {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 1px dashed #3399ff;
+    box-sizing: border-box;
+    z-index: 8000;
+}
+
+#uploadedList > .uploadedList.uploadedFile {
+    background-color: #33ff99;
+    border: 2px solid #33ff99;
+}
+
+#uploadedList > .uploadedList.uploadedFolder {
+    background-color: #3399ff;
+    border: 2px solid #3399ff;
+}
+
+#uploadedList > .uploadedList.cutFile {
+    opacity: 0.4;
+}
+
+#uploadedList > .uploadedList.copyFile {
+    opacity: 0.8;
+}
