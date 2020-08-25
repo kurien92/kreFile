@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,629 +7,90 @@
 
     <title>파일 업로드</title>
 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/style.css}">
 
     <script>
         let contextPath = '[[${#httpServletRequest.getContextPath()}]]';
     </script>
+
     <script th:src="@{/ajax.js}"></script>
-    <script th:src="@{/Common.js}"></script>
-    <script th:src="@{/FileStorage.js}"></script>
-    <script th:src="@{/FileStorageUI.js}"></script>
+    <script th:src="@{/js/library/axios.min.js}"></script>
+    <script th:src="@{/js/module/file/FileStorage.js}"></script>
+    <script th:src="@{/js/module/file/FileStorageUi.js}"></script>
+    <script th:src="@{/js/module/file/FileStorageService.js}"></script>
+    <script th:src="@{/js/module/file/FileStorageHttpTemplate.js}"></script>
 </head>
 
 <body>
-    <div id="dropZone">
-        <ul id="uploadedList">
-        </ul>
+    <div id="fileArea">
+        <div id="dropZone">
+            <ul id="uploadedList">
+            </ul>
 
-        <div id="dragBox"></div>
+            <div id="dragBox"></div>
+        </div>
+
+        <nav id="contextMenuPopup">
+            <ul>
+                <li><button type="button" id="menuDownload">다운로드</button></li>
+                <li><button type="button" id="menuNewFolder">새 폴더</button></li>
+                <li><button type="button" id="menuCut">잘라내기</button></li>
+                <li><button type="button" id="menuCopy">복사</button></li>
+                <li><button type="button" id="menuPaste">붙여넣기</button></li>
+                <li><button type="button" id="menuDelete">삭제</button></li>
+            </ul>
+        </nav>
+
+        <progress id="progress" value="0"></progress>
+
+        <form th:action="@{/file/upload}" method="POST" enctype="multipart/form-data">
+            <input type="file" id="files"> <button type="button" id="saveFile">저장</button>
+        </form>
+    </div>
+    <div id="fileInfo">
+        타입: 파일<br>
+        파일명: Docker.dmg<br>
+        확장자: dmg<br>
+        사이즈: 450.2MB
     </div>
 
-    <nav id="contextMenuPopup">
-        <ul>
-            <li><button type="button" id="menuDownload">다운로드</button></li>
-            <li><button type="button" id="menuNewFolder">새 폴더</button></li>
-            <li><button type="button" id="menuCut">잘라내기</button></li>
-            <li><button type="button" id="menuCopy">복사</button></li>
-            <li><button type="button" id="menuPaste">붙여넣기</button></li>
-            <li><button type="button" id="menuDelete">삭제</button></li>
-        </ul>
-    </nav>
-
-
-    <progress id="progress" value="0"></progress>
-
-    <form th:action="@{/file/upload}" method="POST" enctype="multipart/form-data">
-        <input type="file" id="files"> <button type="button" onclick="sendFile()">저장</button>
-    </form>
-
     <script>
-        let dropZone = document.getElementById('dropZone');
-        let progressBar = document.getElementById("progress");
-
-        let uploadedList = document.getElementById("uploadedList");
-
-        let contextMenuPopup = document.getElementById("contextMenuPopup");
-
-        let menuDownload = document.getElementById("menuDownload");
-        let menuNewFolder = document.getElementById("menuNewFolder");
-        let menuCut = document.getElementById("menuCut");
-        let menuCopy = document.getElementById("menuCopy");
-        let menuPaste = document.getElementById("menuPaste");
-        let menuDelete = document.getElementById("menuDelete");
-
-        let dragBox = document.getElementById("dragBox");
-
-        let fileStorage = new FileStorage();
-        let fileStorageUI = new FileStorageUI({
-            "fileArea": dropZone,
-            "fileList": uploadedList
-        });
-
-        let selectedItem = [];
-        let uploadFolderNo = [];
-
-        let copyFileItem = [];
-        let copyState = null;
-
-        window.addEventListener("load", () => {
-            loadUploadedList();
-        });
-
-        async function loadUploadedList() {
-            let fileList = await fileStorage.list(uploadFolderNo);
-
-            fileStorageUI.setFileList(fileList);
-        }
-    </script>
-
-    <script>
-        menuDownload.addEventListener("click", (e) => {
-            if (selectedItem.length === 0) {
-                alert("다운로드 할 파일을 선택해주세요.");
-                return;
-            }
-
-            let fileNo = selectedItem[0].dataset.fileNo;
-            let downloadUrl = `${contextPath}/file/download?fileNo=${fileNo}`;
-
-            let formData = new FormData();
-
-            // formData.append("folderNo", uploadFolderNo);
-            // formData.append("fileNo", fileNo);
-
-            fileStorage.download(downloadUrl, formData);
-        });
-
-        menuNewFolder.addEventListener("click", (e) => {
-            contextMenuPopup.style.display = "none";
-
-            let newFolderName = prompt("새 폴더 이름을 입력하세요.");
-
-            if (newFolderName === null) {
-                return;
-            }
-
-            let url = `//localhost:8080/file/newFolder`;
-            let formData = new FormData();
-
-            formData.append("folderNo", uploadFolderNo);
-            formData.append("folderName", newFolderName);
-            
-            fileStorage.newFolder(url, formData);
-        });
-
-        menuCut.addEventListener("click", (e) => {
-            contextMenuPopup.style.display = "none";
-            copyState = "cut";
-
-            for(let i = 0; i < copyFileItem.length; i++) {
-                let copyFile = document.getElementById(`file${copyFileItem[i]}`);
-
-                copyFile.classList.remove("cutFile");
-                copyFile.classList.remove("copyFile");
-            }
-
-            copyFileItem = [];
-
-            for(let i = 0; i < selectedItem.length; i++) {
-                selectedItem[i].classList.add("cutFile")
-                copyFileItem.push(selectedItem[i].dataset.fileNo);
-            }
-        });
-
-        menuCopy.addEventListener("click", (e) => {
-            contextMenuPopup.style.display = "none";
-            copyState = "copy";
-
-            for(let i = 0; i < copyFileItem.length; i++) {
-                let copyFile = document.getElementById(`file${copyFileItem[i]}`);
-
-                copyFile.classList.remove("cutFile");
-                copyFile.classList.remove("copyFile");
-            }
-
-            copyFileItem = [];
-
-            for(let i = 0; i < selectedItem.length; i++) {
-                selectedItem[i].classList.add("copyFile")
-                copyFileItem.push(selectedItem[i].dataset.fileNo);
-            }
-        });
-
-        menuPaste.addEventListener("click", (e) => {
-            contextMenuPopup.style.display = "none";
-            let formData = new FormData();
-
-            formData.append("copyState", copyState);
-            formData.append("copyFile", copyFileItem);
-            formData.append("folderNo", uploadFolderNo);
-
-            ajax(`//localhost:8080/file/paste`, 'POST', formData, {
-                loadDone: (data, xhr) => {
-                    console.log(`sendFile done`);
-                    console.log(data);
-
-                    copyState = null;
-                    copyFileItem = [];
-
-                    loadUploadedList();
-                },
-                loadFail: (err, xhr) => {
-                    console.log(`sendFile fail`);
-                    console.log(err);
-                }
-            });
-        });
-
-        menuDelete.addEventListener("click", (e) => {
-            contextMenuPopup.style.display = "none";
-
-            if (selectedItem.length === 0) {
-                alert("삭제할 파일을 선택해주세요.")
-                return;
-            }
-
-            if (confirm("확인을 누르면 파일이 삭제됩니다.") === false) {
-                return;
-            }
-
-            let formData = new FormData();
-            let deleteFileNo = [];
-
-            for (let i = 0; i < selectedItem.length; i++) {
-                deleteFileNo.push(selectedItem[i].dataset.fileNo);
-            }
-
-            formData.append("folderNo", uploadFolderNo);
-            formData.append("fileNo", deleteFileNo);
-
-            ajax(`//localhost:8080/file/delete`, 'POST', formData, {
-                loadDone: (data, xhr) => {
-                    console.log(`sendFile done`);
-                    console.log(data);
-
-                    for (let i = 0; i < selectedItem.length; i++) {
-                        selectedItem[i].remove();
-                    }
-
-                    selectedItem = [];
-                },
-                loadFail: (err, xhr) => {
-                    console.log(`sendFile fail`);
-                    console.log(err);
-                }
-            });
-        });
-
-        dropZone.addEventListener('mousedown', function (e) {
-            e.preventDefault();
-
-            if ((e.button === 1 || e.which === 1)) {
-                dropZoneMouseDownLeft(e);
-                return;
-            } else if ((e.button === 2 || e.which === 3)) {
-                dropZoneMouseDownRight(e);
-                return;
-            }
-        });
-
-        function dropZoneMouseDownLeft(e) {
-            let checkDropZoneList = false;
-
-            selectedItem = [];
-
-            for (let i = 0; i < e.path.length; i++) {
-                if (e.path[i].nodeName === "LI" && e.path[i + 2].id === "dropZone") {
-                    checkDropZoneList = true;
-                    selectedItem.push(e.path[i]);
-                    break;
-                }
-            }
-
-            if (!checkDropZoneList) {
-                return;
-            }
-
-            let selectedClassItem = document.getElementsByClassName("selected");
-
-            for (let i = 0; i < selectedClassItem.length;) {
-                selectedClassItem[i].classList.remove("selected");
-            }
-
-            selectedItem[0].classList.add("selected");
-        }
-
-        function dropZoneMouseDownRight(e) {
-            let checkDropZoneList = false;
-
-            for (let i = 0; i < e.path.length; i++) {
-                if (e.path[i].nodeName === "LI" && e.path[i + 2].id === "dropZone") {
-                    checkDropZoneList = true;
-
-                    if(selectedItem.indexOf(e.path[i]) === -1) {
-                        selectedItem = [];
-                        let selectedClassItem = document.getElementsByClassName("selected");
-
-                        for (let i = 0; i < selectedClassItem.length;) {
-                            selectedClassItem[i].classList.remove("selected");
-                        }
-                    }
-
-                    if (selectedItem.length === 0) {
-                        selectedItem.push(e.path[i]);
-                        selectedItem[0].classList.add("selected");
-                    }
-
-                    break;
-                }
-            }
-
-            if (checkDropZoneList) {
-                contextMenuPopup.style.display = "block";
-                contextMenuPopup.style.top = e.pageY + "px";
-                contextMenuPopup.style.left = e.pageX + "px";
-
-                menuNewFolder.setAttribute("disabled", true);
-                menuPaste.setAttribute("disabled", true);
-
-                menuDownload.removeAttribute("disabled");
-                menuCut.removeAttribute("disabled");
-                menuCopy.removeAttribute("disabled");
-                menuDelete.removeAttribute("disabled");
-                return;
-            }
-
-            contextMenuPopup.style.display = "block";
-            contextMenuPopup.style.top = e.pageY + "px";
-            contextMenuPopup.style.left = e.pageX + "px";
-
-            menuNewFolder.removeAttribute("disabled");
-            
-            if(copyFileItem.length !== 0) {
-                menuPaste.removeAttribute("disabled");
-            } else {
-                menuPaste.setAttribute("disabled", true);
-            }
-
-            menuDownload.setAttribute("disabled", true);
-            menuCut.setAttribute("disabled", true);
-            menuCopy.setAttribute("disabled", true);
-            menuDelete.setAttribute("disabled", true);
-        }
-
-        dropZone.addEventListener('mousemove', (e) => {
-        });
-
-        dropZone.addEventListener('mouseup', function (e) {
-        });
-
-        dropZone.addEventListener('dblclick', (e) => {
-            if ((e.button === 1 || e.which === 1)) {
-                let checkDropZoneList = false;
-
-                if(selectedItem.length !== 1) {
-                    return;
-                }
-
-                if(selectedItem[0].dataset.fileType !== "folder") {
-                    return;
-                }
-
-                if(selectedItem[0].dataset.fileNo === "0") {
-                    uploadFolderNo.pop();
-                    loadUploadedList();
-                    return;
-                }
-
-                uploadFolderNo.push(selectedItem[0].dataset.fileNo);
-                loadUploadedList();
-
-                return;
-            }
-
-        });
-
-        dropZone.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        contextMenuPopup.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        window.addEventListener('mousedown', function (e) {
-            if ((e.button === 1 || e.which === 1)) {
-                windowMousedownLeft(e);
-                return;
-            }
-
-            if ((e.button === 2 || e.which === 3)) {
-                windowMousedownRight(e);
-                return;
-            }
-        });
-
-        let page = {
-            x: 0,
-            y: 0
-        }
-
-        function windowMousedownLeft(e) {
-            let checkContextMenuPopup = false;
-            let checkDropZone = false;
-
-            for (let i = 0; i < e.path.length; i++) {
-                if (e.path[i].nodeName === "NAV" && e.path[i].id === "contextMenuPopup") {
-                    checkContextMenuPopup = true;
-                }
-
-                if (e.path[i].id === "dropZone") {
-                    checkDropZone = true;
-                }
-            }
-
-            if (checkContextMenuPopup === false) {
-                contextMenuPopup.style.display = "none";
-            }
-
-            if (checkDropZone === true) {
-                page.x = e.pageX;
-                page.y = e.pageY;
-
-                dragBox.style.width = 0;
-                dragBox.style.height = 0;
-
-                dragBox.style.display = "block";
-
-                dragBox.style.left = e.pageX + "px";
-                dragBox.style.top = e.pageY + "px";
-            }
-        }
-
-        function windowMousedownRight(e) {
-            let checkDropZoneList = false;
-
-            for (let i = 0; i < e.path.length; i++) {
-                if (e.path[i].nodeName === "LI" && e.path[i + 2].id === "dropZone") {
-                    checkDropZoneList = true;
-                    break;
-                } else if (e.path[i].nodeName === "NAV" && e.path[i].id === "contextMenuPopup") {
-                    checkDropZoneList = true;
-                    break;
-                } else if (e.path[i].nodeName === "DIV" && e.path[i].id === "dropZone") {
-                    checkDropZoneList = true;
-                    break;
-                }
-            }
-
-            if (checkDropZoneList) {
-                return;
-            }
-
-            contextMenuPopup.style.display = "none";
-        }
-
-        window.addEventListener('mousemove', (e) => {
-            if ((e.button === 1 || e.which === 1)) {
-                windowMousemoveLeft(e);
-                return;
-            }
-        });
-
-        function windowMousemoveLeft(e) {
-            let checkDropZone = false;
-
-            for (let i = 0; i < e.path.length; i++) {
-                if (e.path[i].id === "dropZone") {
-                    checkDropZone = true;
-                    break;
-                }
-            }
-
-            if (checkDropZone === false) {
-                return;
-            }
-
-            let position = {
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0
-            }
-
-            position.left = page.x;
-            position.top = page.y;
-
-            let width = e.pageX - page.x;
-            let height = e.pageY - page.y;
-
-            if (width < 0) {
-                position.left = e.pageX;
-                width = Math.abs(width);
-            }
-
-            if (height < 0) {
-                position.top = e.pageY;
-                height = Math.abs(height);
-            }
-
-            dragBox.style.top = position.top + "px";
-            dragBox.style.left = position.left + "px";
-
-            dragBox.style.width = width + "px";
-            dragBox.style.height = height + "px";
-
-            position.right = position.left + width;
-            position.bottom = position.top + height;
-
-
-            selectedItem = [];
-
-            let selectedClassItem = document.getElementsByClassName("selected");
-
-            for (let i = 0; i < selectedClassItem.length;) {
-                selectedClassItem[i].classList.remove("selected");
-            }
-
-            let uploadedListChild = uploadedList.children;
-
-            for (let i = 0; i < uploadedListChild.length; i++) {
-                let currentList = uploadedListChild[i];
-
-                let currentPosition = {
-                    top: currentList.offsetTop,
-                    left: currentList.offsetLeft,
-                    right: currentList.offsetLeft + currentList.offsetWidth,
-                    bottom: currentList.offsetTop + currentList.offsetHeight
-                }
-
-                if (dragSelectedList(position, currentPosition)) {
-                    currentList.classList.add("selected");
-                    selectedItem.push(currentList);
-                }
-            }
-        }
-
-        /**
-         * 1. 두 점이 포함된다.
-         * 1.1. top, left
-         * 1.2. top, right
-         * 1.3. bottom, left
-         * 1.4. bottom, right
-         *
-         * 2. 세 점이 포함된다.
-         * 2.1. top, bottom, left
-         * 2.2. top, bottom, right
-         * 2.3. left, right, top
-         * 2.4. left, right, bottom
-         *
-         * 3. 네 점이 포함된다.
-         * 3.1. top, bottom, left, right
-         *
-         * @param position
-         * @param currentPosition
-         * @returns {boolean}
-         */
-        function dragSelectedList(position, currentPosition) {
-            let checkDragSelected = false;
-
-
-            if(position.top < currentPosition.top && position.left < currentPosition.left && position.right > currentPosition.right && position.bottom > currentPosition.bottom) {
-                checkDragSelected = true;
-            } else if (position.top > currentPosition.top && position.left > currentPosition.left && position.bottom < currentPosition.bottom && position.right < currentPosition.right) {
-                checkDragSelected = true;
-            }
-
-            // if (position.top < currentPosition.top && position.left < currentPosition.left && position.bottom > currentPosition.top && position.right > currentPosition.left) {
-            //     checkDragSelected = true;
-            // } else if (position.bottom > currentPosition.bottom && position.right > currentPosition.right && position.top < currentPosition.bottom && position.left < currentPosition.right) {
-            //     checkDragSelected = true;
-            // } else if (position.top < currentPosition.top && position.right > currentPosition.right && position.bottom > currentPosition.top && position.left < currentPosition.right) {
-            //     checkDragSelected = true;
-            // } else if (position.bottom > currentPosition.bottom && position.left < currentPosition.left && position.top < currentPosition.bottom && position.right > currentPosition.left) {
-            //     checkDragSelected = true;
-            // } else if (position.top > currentPosition.top && position.left > currentPosition.left && position.bottom < currentPosition.bottom && position.right < currentPosition.right) {
-            //     checkDragSelected = true;
-            // }
-
-            return checkDragSelected;
-        }
-
-        window.addEventListener('mouseup', function (e) {
-            if ((e.button === 1 || e.which === 1)) {
-                dragBox.style.width = e.pageX - page.x + "px";
-                dragBox.style.height = e.pageY - page.y + "px";
-
-                dragBox.style.display = "none";
-                return;
-            } else if ((e.button === 2 || e.which === 3) === false) {
-                contextMenuPopup.style.display = "none";
-                return;
-            }
-        });
-
-    </script>
-
-    <script>
-        dropZone.addEventListener('dragover', e => {
-            e.stopPropagation();
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-        });
-
-        dropZone.addEventListener('dragenter', e => {
-            dropZone.classList.add("dragged");
-        });
-
-        dropZone.addEventListener('dragleave', e => {
-            dropZone.classList.remove("dragged");
-        });
-
-        dropZone.addEventListener('drop', e => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            dropZone.classList.remove("dragged");
-
-            let files = e.dataTransfer.files;
-
-            let formData = new FormData();
-
-            formData.append("folderNo", uploadFolderNo);
-
-            for (let i = 0, file; file = files[i]; i++) {
-                formData.append('files', file);
-            }
-
-            ajax('//localhost:8080/file/upload', 'POST', formData, {
-                uploadProgress: function (e) {
-                    if (e.lengthComputable) {
-                        let percentage = Math.round((e.loaded / e.total) * 100);
-
-                        progressBar.max = e.total;
-                        progressBar.value = e.loaded;
-                    } else {
-                        console.log("Unable to compute progress information since the total size is unknown");
-                    }
-                },
-                uploadLoadstart: function (e) {
-                    progressBar.value = 0;
-                },
-                uploadLoadend: function (e) {
-                    progressBar.value = e.loaded;
-                },
-                loadDone: (data, xhr) => {
-                    console.log(`sendFile done ${data}`);
-                    loadUploadedList();
-                },
-                loadFail: (err, xhr) => {
-                    console.log(`sendFile fail ${err}`);
-                }
-            });
-        });
+        let dropZone = document.getElementById('dropZone'); // 파일을 드래그 앤 드랍하여 업로드 하는 영역
+        let progressBar = document.getElementById("progress"); // 파일 업로드 시 진행되는 프로그래스바
+        let uploadedList = document.getElementById("uploadedList"); // 업로드 된 파일이 보여지는 목록 영역
+        let contextMenuPopup = document.getElementById("contextMenuPopup"); // 마우스 우클릭 시 나타나는 메뉴
+        let menuDownload = document.getElementById("menuDownload"); // 파일 다운로드
+        let menuNewFolder = document.getElementById("menuNewFolder"); // 새폴더 생성
+        let menuCut = document.getElementById("menuCut"); // 잘라내기
+        let menuCopy = document.getElementById("menuCopy"); // 복사
+        let menuPaste = document.getElementById("menuPaste"); // 붙여넣기
+        let menuDelete = document.getElementById("menuDelete"); // 삭제
+        let dragBox = document.getElementById("dragBox"); // 드래그 시 선택되는 영역
+
+        let files = document.getElementById("files");
+        let saveFile = document.getElementById("saveFile");
+
+        let fileStorageHttpTemplate = new FileStorageHttpTemplate()
+        let fileStorageService = new FileStorageService(fileStorageHttpTemplate);
+        let fileStorageUi = new FileStorageUi(
+            dropZone,
+            uploadedList,
+            progressBar,
+            contextMenuPopup,
+            menuDownload,
+            menuNewFolder,
+            menuCut,
+            menuCopy,
+            menuPaste,
+            menuDelete,
+            dragBox,
+            files,
+            saveFile
+        );
+        let fileStorage = new FileStorage(fileStorageUi, fileStorageService);
+
+        fileStorage.init();
     </script>
 </body>
-
 </html>

@@ -294,8 +294,6 @@ public class BasicFileService implements FileService {
 		if(file.exists() == false) {
 			file.mkdirs();
 		}
-
-		String fileExtension = getFileExtension(folderName);
 		
 		String randomFilename = null;
 		String storedFilename = null;
@@ -304,10 +302,7 @@ public class BasicFileService implements FileService {
 		do {
 			randomFilename = getRandomString();
 			storedFilename = randomFilename;
-			
-			if(fileExtension != null) {
-				storedFilename += fileExtension;
-			}
+
 			
 			path = filePath + File.separator + storedFilename;
 			file = new File(path);

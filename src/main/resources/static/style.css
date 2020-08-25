@@ -2,6 +2,20 @@ body {
     margin: 0;
 }
 
+#fileArea {
+    width: 70%;
+    float: left;
+}
+
+#fileInfo {
+    width: 30%;
+    float: right;
+    height: 600px;
+    padding: 30px;
+    background-color: #00abec;
+    box-sizing: border-box;
+}
+
 #dropZone {
     margin: 0 auto;
     width: 100%;
@@ -32,18 +46,19 @@ body {
 
 #uploadedList > li {
     float: left;
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     margin-left: 20px;
-    background-color: #fff;
-    border: 2px solid #fff;
-    word-break: break-all;
+    padding: 10px;
+    border: 2px solid transparent;
+    box-sizing: border-box;
     cursor: pointer;
+    word-break: break-all;
 }
 
 #uploadedList > li.selected {
-    background-color: #ccc;
-    border: 2px solid #f00 !important;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 2px solid #ccc !important;
 }
 
 #uploadedList > li:first-child {
@@ -70,13 +85,21 @@ body {
 }
 
 #uploadedList > .uploadedList.uploadedFile {
-    background-color: #33ff99;
-    border: 2px solid #33ff99;
+    color: #fff;
 }
 
 #uploadedList > .uploadedList.uploadedFolder {
-    background-color: #3399ff;
-    border: 2px solid #3399ff;
+    color: #fff;
+}
+
+#uploadedList > .uploadedList.uploadedFile .material-icons {
+    font-size: 50px;
+    color: #333;
+}
+
+#uploadedList > .uploadedList.uploadedFolder .material-icons {
+    font-size: 50px;
+    color: #3399ff;
 }
 
 #uploadedList > .uploadedList.cutFile {
